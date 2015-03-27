@@ -29,7 +29,11 @@ func main() {
 		panic(err)
 	}
 
+	//create task
+	task := NewDiceTask()
+
 	//run bot
 	bot := goclack.New(m.Token)
+	bot.AddBehaiviors(&task)
 	bot.Run()
 }
