@@ -26,17 +26,18 @@ type Events struct {
 	Type string `json:"type"`
 }
 
-// Behivor is
+// Behavior is
 // Condition...条件
 // Action 条件を満たした場合の...処理
-type Behivor interface {
-	Condition() bool
+type Behavior interface {
+	Check(b []byte) bool
 	Action(ws *websocket.Conn)
 }
 
 // A Goclack is
 type Goclack struct {
-	token string
+	token      string
+	behaiviors []Behavior
 }
 
 // New is Create Goclack Struct
@@ -50,6 +51,11 @@ func (g *Goclack) Run() {
 	param := g.start()
 	ws := g.connect(param.URL)
 	g.relay(ws)
+}
+
+// AddBehaiviors is
+func (g *Goclack) AddBehaiviors(b Behavior) {
+	g.behaiviors = append(g.behaiviors, b)
 }
 
 func ping(ws *websocket.Conn, ch chan<- error) {
@@ -68,7 +74,7 @@ func (g *Goclack) relay(ws *websocket.Conn) error {
 	ch1 := make(chan error)
 	ch2 := make(chan error)
 
-	go receive(ws, ch1)
+	go g.receive(ws, ch1)
 	go ping(ws, ch2)
 
 	select {
@@ -90,13 +96,28 @@ func (g *Goclack) connect(wsurl string) *websocket.Conn {
 }
 
 // receive slack send message.
-func receive(ws *websocket.Conn, ch chan<- error) {
-	var events Events
+func (g *Goclack) receive(ws *websocket.Conn, ch chan<- error) {
+	//var events Events
+	var data []byte
+	var event Events
+
 	for {
-		if err := websocket.JSON.Receive(ws, &events); err != nil {
+		if err := websocket.Message.Receive(ws, &data); err != nil {
 			ch <- err
-		} else {
-			fmt.Println(events)
+			break
+		}
+
+		err := json.Unmarshal(data, &event)
+		if err != nil {
+			ch <- err
+			break
+		}
+		fmt.Println(event.Type)
+
+		for _, behaivior := range g.behaiviors {
+			if behaivior.Check(data) {
+				behaivior.Action(ws)
+			}
 		}
 
 	}

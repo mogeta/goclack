@@ -6,12 +6,14 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/mogeta/goclack"
 	"golang.org/x/net/websocket"
 )
 
 // Dice act roll dice
 type Dice struct {
 	channel string
+	goclack.Behavior
 }
 
 // A Event is response type
